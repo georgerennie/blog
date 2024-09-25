@@ -94,7 +94,7 @@ regular enabled flip-flop.
 ]({{ "/assets/images/clock-gating/icg_latch.png" | relative_url }})
 
 But this uses more logic than the clock gated DFF for the same function, so
-how does this save in area? The savings rely once again on amortized cost.
+how does this save in area? The savings rely once again on amortised cost.
 You will notice now that the value at the output of the DFF depends only on
 the input and the clock. This means that it can be reused for multiple flops
 that read from the same wire, even if they have different enable signals.
@@ -118,10 +118,10 @@ the cost of that extra DFF!
 # Can we automate this?
 
 These are quite common optimisations that commercial tools can perform
-automatically (at least the clock gating), and can be partiall done in Yosys using
-[Lighter](https://github.com/AUCOHL/Lighter) which pattern matches on DFFEs,
+automatically (at least the clock gating), and can be partially be done in Yosys
+using [Lighter](https://github.com/AUCOHL/Lighter) which pattern matches on DFFEs,
 replacing them with this ICG structure. There is
 [ongoing work](https://github.com/YosysHQ/yosys/pull/4583) to natively add
-these optimizations to Yosys with better heuristics to detect when they improve area,
+these optimisations to Yosys with better heuristics to detect when they improve area,
 so hopefully this will be an easy improvement the user never even has to think
 about.
