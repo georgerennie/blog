@@ -15,7 +15,7 @@ so I thought I would share them for reference.
 # What is a clock gate?
 
 The general type of circuit we want to optimise are flip-flops with enables
-(we ignore resets for now to keep things simple). These are flops that hold
+(we ignore resets for now to keep things simple). These are flip-flops that hold
 their value unless an enable goes high in which case they take an input value
 (shown below either with a mux to select the value each clock cycle or a special
 `DFFE` cell which does the same thing in one cell):
@@ -29,16 +29,16 @@ These are common structures in digital design, for example in CPUs registers in
 the register file may look like this, or memory mapped control registers. An
 important thing to note is that often a number of these structures share the
 same enable (for example, if you have a 32-bit control register that can be
-written from a bus, each of the 32 flops it is made of has the same enable
+written from a bus, each of the 32 flip-flops it is made of has the same enable
 signal), or the same input signal (for example, if you have two different
 control registers that are written from the same bus, the LSB of each control
 register has the LSB of the bus's data wire as their input).
 
 But we can optimise these designs! Even when the value doesn't change, toggling
 the clock input every cycle uses some amount of dynamic power consumption, and
-actually we only need to trigger the DFF's clock input when the enable is high,
-at any other time we know the value is going to stay the same. To do this, we
-can gate the clock input, so that it only ever toggles when enable is high.
+actually we only need to trigger the flip-flop's clock input when the enable is
+high, at any other time we know the value is going to stay the same. To do this,
+we can gate the clock input, so that it only ever toggles when enable is high.
 This can be done with something like the following verilog:
 
 ```verilog
@@ -59,7 +59,8 @@ be easily characterised:
 ]({{ "/assets/images/clock-gating/icg.png" | relative_url }})
 
 Using this we can remove the mux from our original circuit, instead driving the
-DFF's D input directly and using an ICG to gate the clock with the enable signal:
+flip-flops's data input directly and using an ICG to gate the clock with the
+enable signal:
 
 ![
 	An ICG gating a clock with an enable signal has its output fed into the clock
@@ -74,45 +75,58 @@ same enable, like with the 32 bits of a control register. Before this
 optimisation each bit requires its own mux (needing 32 muxes):
 
 ![
+	A wide bus feeding flip-flops with muxes on their inputs to select between
+	writing back their current value or the bus value, gated by a common enable
+	signal
 ]({{ "/assets/images/clock-gating/bus_before_icg.png" | relative_url }})
 
-but now we can instead use just one ICG for all of the flops as they all need
+but now we can instead use just one ICG for all of the flip-flops as they all need
 the same gated clock, meaning we replaced 32 muxes with 1 ICG!
 
 ![
+	The muxes from the previous diagram have been removed, and now there is one
+	ICG on the clock path that feeds the clock input for each flip-flop
 ]({{ "/assets/images/clock-gating/bus_after_icg.png" | relative_url }})
 
 # How do latches come into it?
 
-We can replace our enabled flop with a slightly more complicated structure.
+We can replace our enabled flip-flop with a slightly more complicated structure.
 Here, the flip-flop stores the input value each clock cycle, and when the enable
-signal is high, the D-latch passes the flopped value through transparently while
-the gated clock is high, then saves that value when it goes low, acting as a
-regular enabled flip-flop.
+signal is high, the D-latch passes the output of the flip-flop through
+transparently while the gated clock is high, then saves that value when it goes
+low, acting as a regular enabled flip-flop.
 
 ![
+	An input signal clocked into a flip-flop, then fed through a latch that has
+	its enable signal driven by an enable that has come from an ICG
 ]({{ "/assets/images/clock-gating/icg_latch.png" | relative_url }})
 
-But this uses more logic than the clock gated DFF for the same function, so
+But this uses more logic than the clock gated flip-flop for the same function, so
 how does this save in area? The savings rely once again on amortised cost.
-You will notice now that the value at the output of the DFF depends only on
-the input and the clock. This means that it can be reused for multiple flops
+You will notice now that the value at the output of the flip-flop depends only on
+the input and the clock. This means that it can be reused for multiple flip-flops
 that read from the same wire, even if they have different enable signals.
 Consider the unoptimised circuit below:
 
 ![
+	A single input wire feeding many flip-flops with muxes on their inputs to
+	select between writing back their current value or the bus value, gated by
+	a different enable signal for each flip-flop
 ]({{ "/assets/images/clock-gating/bus_before_latch_icg.png" | relative_url }})
 
 This could correspond to the logic for the LSB of a number of registers driven
 from the same bus. Each has a different enable signal (perhaps each is high
 when the bus' address is set to different values). Because every input is the
-same, when we convert it to the version using a latch, we only need one DFF.
-Therefore this needs 1 DFF and N latches, whereas the previous version needed
-N DFFs. As latches are smaller than DFFs, once you have a few driven from the
-same input like this, the area savings of using latches instead of DFFs outweighs
-the cost of that extra DFF!
+same, when we convert it to the version using a latch, we only need one flip-flop.
+Therefore this needs 1 flip-flop and N latches, whereas the previous version needed
+N flip-flops. As latches are smaller than flip-flops, once you have a few driven from the
+same input like this, the area savings of using latches instead of flip-flops outweighs
+the cost of that extra flip-flop!
 
 ![
+	The muxes from the previous diagram have been removed, the flip-flops
+	replaced with latches and now there is one flip-flop buffering the input
+	net. The enable signals for the latches pass through ICGs
 ]({{ "/assets/images/clock-gating/bus_after_latch_icg.png" | relative_url }})
 
 # Can we automate this?
