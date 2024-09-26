@@ -4,4 +4,4 @@ title: About
 permalink: /about/
 ---
 
-Trying to make formal verification a little more fun.
+trying to make formal verification a little more fun
