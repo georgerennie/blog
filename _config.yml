@@ -12,3 +12,8 @@ plugins:
   - jekyll-feed
 
 show_excepts: true
+
+# Hacky - we aren't actually using disqus but this just lets us inject
+# utteranc.es into the template where disqus would go
+disqus:
+    shortname: .

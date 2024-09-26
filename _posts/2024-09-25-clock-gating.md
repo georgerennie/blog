@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "ASIC Clock Gating and Latches"
+title:  "Clock Gating and Latches"
 date:   2024-09-25
 ---
 
